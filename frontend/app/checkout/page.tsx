@@ -404,7 +404,7 @@ export default function CheckoutPage() {
                     <p className="font-mono text-base" dir="ltr">
                       6037-9970-1234-5678
                     </p>
-                    <p className="mt-1 text-xs">به نام: حسین شوشتری</p>
+                    <p className="mt-1 text-xs">به نام: علی اصغر کیانی</p>
                   </div>
                 )}
 
