@@ -20,6 +20,8 @@ from wagtail.models import Orderable, Page
 from wagtail.search import index
 from wagtail.snippets.models import register_snippet
 
+from .blocks import HOME_BLOCKS
+
 
 # ---------------------------------------------------------------------------
 # Snippets
@@ -112,15 +114,25 @@ class HomePage(Page):
     intro_text = RichTextField(blank=True, verbose_name='متن معرفی')
     about_section = RichTextField(blank=True, verbose_name='درباره ما')
 
+    # بخش‌های قابل‌ویرایش و جابجاشونده صفحه اصلی
+    body = StreamField(
+        HOME_BLOCKS,
+        blank=True,
+        use_json_field=True,
+        verbose_name='بخش‌های صفحه اصلی',
+        help_text='هر بخش را می‌توانید ویرایش، جابجا، اضافه یا حذف کنید.',
+    )
+
     content_panels = Page.content_panels + [
         MultiFieldPanel([
             FieldPanel('hero_title'),
             FieldPanel('hero_subtitle'),
             FieldPanel('hero_button_text'),
             FieldPanel('hero_image'),
-        ], heading='بنر اصلی'),
+        ], heading='بنر اصلی (قدیمی)'),
         FieldPanel('intro_text'),
         FieldPanel('about_section'),
+        FieldPanel('body'),
     ]
 
     api_fields = [
@@ -129,6 +141,7 @@ class HomePage(Page):
         APIField('hero_button_text'),
         APIField('intro_text'),
         APIField('about_section'),
+        APIField('body'),
     ]
 
     class Meta:
