@@ -4,14 +4,14 @@
 
 ## استقرار (Deployment)
 
-> ⚠️ **مهم:** پروداکشن با **PM2 + systemd** اجرا می‌شود، **نه Docker**.
-> فایل‌های `Dockerfile` در ریپو فقط برای توسعه‌اند و در استقرار واقعی استفاده نمی‌شوند.
+> ⚠️ **مهم:** پروداکشن کاملاً با **systemd** اجرا می‌شود، **نه Docker و نه PM2**.
+> فایل‌های `Dockerfile` و `frontend/ecosystem.config.js` در استقرار واقعی استفاده **نمی‌شوند**.
 
 - **سرور:** VPS، مسیر ریپو `/var/www/goharevela` (دامنه `goharevela.ir`)
 - **اسکریپت استقرار:** `./deploy.sh` (روی خود سرور اجرا می‌شود)
-- **فرانت‌اند:** با **PM2** اجرا می‌شود
-  - اپ: `goharevela-frontend` (در `frontend/ecosystem.config.js`)
-  - دستور: `npm run build` سپس `pm2 restart goharevela-frontend`
+- **فرانت‌اند:** با **systemd** اجرا می‌شود
+  - سرویس: `goharevela-frontend` (در صورت تفاوت: `FRONTEND_SERVICE=نام ./deploy.sh`)
+  - دستور: `npm run build` سپس `sudo systemctl restart goharevela-frontend`
   - حالت `next start` است (نه dev) — پس هر تغییر فرانت نیاز به **build مجدد** دارد.
 - **بک‌اند:** با **systemd** اجرا می‌شود
   - سرویس: `gunicorn` (در صورت تفاوت: `BACKEND_SERVICE=نام ./deploy.sh`)

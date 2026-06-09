@@ -15,8 +15,8 @@ REPO_DIR="${REPO_DIR:-/var/www/goharevela}"
 BRANCH="${BRANCH:-claude/clever-carson-r6f0sg}"
 FRONTEND_DIR="$REPO_DIR/frontend"
 BACKEND_DIR="$REPO_DIR/backend"
-PM2_APP="${PM2_APP:-goharevela-frontend}"
-BACKEND_SERVICE="${BACKEND_SERVICE:-gunicorn}"   # نام سرویس systemd بک‌اند
+FRONTEND_SERVICE="${FRONTEND_SERVICE:-goharevela-frontend}"  # نام سرویس systemd فرانت
+BACKEND_SERVICE="${BACKEND_SERVICE:-gunicorn}"               # نام سرویس systemd بک‌اند
 VENV_DIR="${VENV_DIR:-$BACKEND_DIR/venv}"
 DJANGO_SETTINGS="${DJANGO_SETTINGS:-config.settings.production}"
 
@@ -57,8 +57,8 @@ cd "$FRONTEND_DIR"
 npm install
 npm run build
 
-log "ری‌استارت فرانت‌اند ($PM2_APP)"
-pm2 restart "$PM2_APP"
+log "ری‌استارت فرانت‌اند ($FRONTEND_SERVICE)"
+sudo systemctl restart "$FRONTEND_SERVICE"
 ok "فرانت‌اند ری‌استارت شد"
 
 # ─── پایان ─────────────────────────────────────────────────────────────────────
