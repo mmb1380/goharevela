@@ -1,5 +1,5 @@
 """
-Product models for حجره شوشتری.
+Product models for گوهر ولا.
 """
 from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator

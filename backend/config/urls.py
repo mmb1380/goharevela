@@ -1,5 +1,5 @@
 """
-Main URL configuration for حجره شوشتری backend.
+Main URL configuration for گوهر ولا backend.
 """
 from django.conf import settings
 from django.conf.urls.static import static

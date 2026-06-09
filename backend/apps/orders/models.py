@@ -1,5 +1,5 @@
 """
-Order-related models for حجره شوشتری.
+Order-related models for گوهر ولا.
 """
 import uuid
 from decimal import Decimal

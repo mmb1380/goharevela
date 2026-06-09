@@ -1,5 +1,5 @@
 """
-Base settings for حجره شوشتری (Hojreh Shoushtari) backend.
+Base settings for گوهر ولا (Hojreh Shoushtari) backend.
 """
 import os
 from pathlib import Path
@@ -216,7 +216,7 @@ CORS_ALLOW_CREDENTIALS = True
 # ---------------------------------------------------------------------------
 # Wagtail
 # ---------------------------------------------------------------------------
-WAGTAIL_SITE_NAME = 'حجره شوشتری'
+WAGTAIL_SITE_NAME = 'گوهر ولا'
 WAGTAILIMAGES_MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10 MB
 WAGTAIL_ENABLE_UPDATE_CHECK = False
 WAGTAILADMIN_BASE_URL = os.environ.get('WAGTAILADMIN_BASE_URL', 'http://localhost:8000')

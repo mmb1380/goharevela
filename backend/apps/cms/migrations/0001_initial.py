@@ -38,7 +38,7 @@ class Migration(migrations.Migration):
                 ('page_ptr', models.OneToOneField(auto_created=True, on_delete=django.db.models.deletion.CASCADE, parent_link=True, primary_key=True, serialize=False, to='wagtailcore.page')),
                 ('date', models.DateField(verbose_name='تاریخ انتشار')),
                 ('intro', models.CharField(max_length=400, verbose_name='خلاصه مقاله')),
-                ('author', models.CharField(blank=True, default='حجره شوشتری', max_length=100, verbose_name='نویسنده')),
+                ('author', models.CharField(blank=True, default='گوهر ولا', max_length=100, verbose_name='نویسنده')),
                 ('body', wagtail.fields.StreamField([('heading', wagtail.blocks.CharBlock(form_classname='title', label='عنوان')), ('paragraph', wagtail.blocks.RichTextBlock(label='متن')), ('image', wagtail.images.blocks.ImageChooserBlock(label='تصویر')), ('quote', wagtail.blocks.StructBlock([('text', wagtail.blocks.TextBlock(label='متن نقل\u200cقول')), ('author', wagtail.blocks.CharBlock(label='گوینده', required=False))], label='نقل\u200cقول'))], verbose_name='محتوای مقاله')),
                 ('cover_image', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='wagtailimages.image', verbose_name='تصویر شاخص')),
             ],
@@ -79,7 +79,7 @@ class Migration(migrations.Migration):
             name='HomePage',
             fields=[
                 ('page_ptr', models.OneToOneField(auto_created=True, on_delete=django.db.models.deletion.CASCADE, parent_link=True, primary_key=True, serialize=False, to='wagtailcore.page')),
-                ('hero_title', models.CharField(default='حجره شوشتری', max_length=255, verbose_name='عنوان بنر')),
+                ('hero_title', models.CharField(default='گوهر ولا', max_length=255, verbose_name='عنوان بنر')),
                 ('hero_subtitle', models.CharField(blank=True, max_length=500, verbose_name='زیرعنوان بنر')),
                 ('hero_button_text', models.CharField(default='مشاهده محصولات', max_length=100, verbose_name='متن دکمه بنر')),
                 ('intro_text', wagtail.fields.RichTextField(blank=True, verbose_name='متن معرفی')),

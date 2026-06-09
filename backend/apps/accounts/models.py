@@ -1,5 +1,5 @@
 """
-Custom User model for حجره شوشتری.
+Custom User model for گوهر ولا.
 """
 import re
 

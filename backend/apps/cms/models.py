@@ -1,5 +1,5 @@
 """
-Wagtail CMS page models for حجره شوشتری.
+Wagtail CMS page models for گوهر ولا.
 """
 from django import forms
 from django.db import models
@@ -88,7 +88,7 @@ class HomePage(Page):
 
     hero_title = models.CharField(
         max_length=255,
-        default='حجره شوشتری',
+        default='گوهر ولا',
         verbose_name='عنوان بنر',
     )
     hero_subtitle = models.CharField(
@@ -187,7 +187,7 @@ class BlogPage(Page):
 
     date = models.DateField(verbose_name='تاریخ انتشار')
     intro = models.CharField(max_length=400, verbose_name='خلاصه مقاله')
-    author = models.CharField(max_length=100, blank=True, default='حجره شوشتری', verbose_name='نویسنده')
+    author = models.CharField(max_length=100, blank=True, default='گوهر ولا', verbose_name='نویسنده')
     cover_image = models.ForeignKey(
         'wagtailimages.Image',
         null=True,
