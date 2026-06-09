@@ -1,0 +1,188 @@
+@import url('https://cdn.jsdelivr.net/npm/@fontsource/vazirmatn@5.0.8/index.min.css');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --gold: #b8860b;
+  --gold-light: #d4a017;
+  --gold-dark: #8b6509;
+  --dark: #1a1a1a;
+  --dark-secondary: #2a2a2a;
+  --text-primary: #1a1a1a;
+  --text-secondary: #555555;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f9f6f0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  direction: rtl;
+}
+
+body {
+  font-family: 'Vazirmatn', Tahoma, sans-serif;
+  direction: rtl;
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--gold);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--gold-dark);
+}
+
+/* Selection */
+::selection {
+  background-color: var(--gold);
+  color: white;
+}
+
+/* Transitions */
+a,
+button {
+  transition: all 0.2s ease;
+}
+
+/* Line clamp utilities */
+.line-clamp-2 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.line-clamp-3 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+/* Shimmer animation */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    #f0f0f0 25%,
+    #e0e0e0 50%,
+    #f0f0f0 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Gold gradient text */
+.gold-gradient-text {
+  background: linear-gradient(135deg, var(--gold-light), var(--gold), var(--gold-dark));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Card hover effect */
+.card-hover {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(184, 134, 11, 0.15);
+}
+
+/* Image zoom on hover */
+.img-zoom-container {
+  overflow: hidden;
+}
+
+.img-zoom-container img {
+  transition: transform 0.4s ease;
+}
+
+.img-zoom-container:hover img {
+  transform: scale(1.08);
+}
+
+/* Focus styles */
+input:focus,
+textarea:focus,
+select:focus {
+  outline: 2px solid var(--gold);
+  outline-offset: 1px;
+}
+
+/* Persian number font feature */
+.persian-num {
+  font-feature-settings: 'numr';
+}
+
+/* Overlay */
+.overlay {
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+/* Swiper custom styles */
+.swiper-pagination-bullet {
+  background: white !important;
+  opacity: 0.6 !important;
+}
+
+.swiper-pagination-bullet-active {
+  background: var(--gold) !important;
+  opacity: 1 !important;
+}
+
+.swiper-button-next,
+.swiper-button-prev {
+  color: var(--gold) !important;
+}
+
+/* Form inputs RTL */
+input,
+textarea,
+select {
+  text-align: right;
+  direction: rtl;
+}
+
+/* Table styles */
+table {
+  direction: rtl;
+}
+
+/* Breadcrumb separator */
+.breadcrumb-sep::after {
+  content: '/';
+  margin: 0 0.5rem;
+  color: #999;
+}
