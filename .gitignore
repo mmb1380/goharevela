@@ -1,0 +1,31 @@
+# ─── Python / Django ───────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Local database (production DB must never be in git)
+*.sqlite3
+db.sqlite3
+
+# Django collected/static & uploaded media
+backend/staticfiles/
+backend/media/
+media/
+
+# Environment files / secrets
+.env
+.env.*
+*.env
+
+# ─── Node / Next.js ────────────────────────────────────────────
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+
+# ─── Logs & misc ───────────────────────────────────────────────
+*.log
+.DS_Store
