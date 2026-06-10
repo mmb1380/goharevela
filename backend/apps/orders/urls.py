@@ -4,7 +4,14 @@ URL patterns for the orders app.
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from .views import CartViewSet, CouponValidateView, OrderViewSet
+from .views import (
+    CartViewSet,
+    CouponValidateView,
+    OrderViewSet,
+    PaymentCallbackView,
+    PaymentInitiateView,
+    ShippingMethodListView,
+)
 
 app_name = 'orders'
 
@@ -15,4 +22,7 @@ router.register(r'orders', OrderViewSet, basename='order')
 urlpatterns = [
     path('', include(router.urls)),
     path('coupons/validate/', CouponValidateView.as_view(), name='coupon-validate'),
+    path('shipping/', ShippingMethodListView.as_view(), name='shipping-methods'),
+    path('orders/<int:pk>/pay/', PaymentInitiateView.as_view(), name='payment-initiate'),
+    path('payment/callback/', PaymentCallbackView.as_view(), name='payment-callback'),
 ]

@@ -218,6 +218,14 @@ export const getOrder = async (id: number): Promise<Order> => {
   return res.data
 }
 
+// Initiate online payment for a pending order; returns the gateway redirect URL.
+export const initiatePayment = async (
+  orderId: number
+): Promise<{ redirect_url: string; message: string }> => {
+  const res = await api.post(`/orders/orders/${orderId}/pay/`)
+  return res.data
+}
+
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
 export const login = async (

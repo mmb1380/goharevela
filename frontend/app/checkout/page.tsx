@@ -2,13 +2,15 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Check, ChevronLeft, CreditCard, Wallet, MapPin, User, Phone, ArrowLeft } from 'lucide-react'
+import { Check, ChevronLeft, CreditCard, Wallet, MapPin, User, Phone, ArrowLeft, Truck } from 'lucide-react'
 import { useCartStore } from '@/lib/store'
 import { useAuthStore } from '@/lib/store'
-import { createOrder } from '@/lib/api'
+import { createOrder, initiatePayment } from '@/lib/api'
+import { loadSiteConfig } from '@/lib/siteConfig'
 import { formatPrice, toPersianDigits } from '@/lib/utils'
 import Image from 'next/image'
 import { getImageUrl } from '@/lib/utils'
+import type { PaymentConfig, ShippingMethod } from '@/types'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
 
@@ -19,7 +21,16 @@ interface FormData {
   city: string
   postal_code: string
   payment_method: 'online' | 'card_to_card'
+  shipping_method_id: number | null
   notes: string
+}
+
+// مقادیر پیش‌فرض وقتی تنظیمات پرداخت هنوز از پنل خوانده نشده‌اند.
+const DEFAULT_PAYMENT: PaymentConfig = {
+  online_enabled: false,
+  card_to_card_enabled: true,
+  card_number: '6037-9970-1234-5678',
+  card_holder: 'علی اصغر کیانی',
 }
 
 const steps = [
@@ -35,6 +46,8 @@ export default function CheckoutPage() {
   const [currentStep, setCurrentStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [orderId, setOrderId] = useState<number | null>(null)
+  const [payment, setPayment] = useState<PaymentConfig>(DEFAULT_PAYMENT)
+  const [shippingMethods, setShippingMethods] = useState<ShippingMethod[]>([])
 
   const [form, setForm] = useState<FormData>({
     full_name: user ? `${user.first_name} ${user.last_name}`.trim() : '',
@@ -42,11 +55,12 @@ export default function CheckoutPage() {
     address: user?.address || '',
     city: user?.city || '',
     postal_code: '',
-    payment_method: 'online',
+    payment_method: 'card_to_card',
+    shipping_method_id: null,
     notes: '',
   })
 
-  const [errors, setErrors] = useState<Partial<FormData>>({})
+  const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({})
 
   useEffect(() => {
     fetchCart()
@@ -55,8 +69,28 @@ export default function CheckoutPage() {
     }
   }, [fetchCart, isAuthenticated, router])
 
+  // بارگذاری تنظیمات پرداخت و روش‌های ارسال از پنل ادمین
+  useEffect(() => {
+    loadSiteConfig()
+      .then((cfg) => {
+        if (!cfg) return
+        const pay = cfg.payment ?? DEFAULT_PAYMENT
+        setPayment(pay)
+        const methods = cfg.shipping ?? []
+        setShippingMethods(methods)
+        setForm((f) => ({
+          ...f,
+          // پیش‌فرض: اولین روش پرداخت فعال
+          payment_method: pay.online_enabled ? 'online' : 'card_to_card',
+          // پیش‌فرض: اولین روش ارسال
+          shipping_method_id: methods.length > 0 ? methods[0].id : null,
+        }))
+      })
+      .catch(() => {})
+  }, [])
+
   const validate = (): boolean => {
-    const newErrors: Partial<FormData> = {}
+    const newErrors: Partial<Record<keyof FormData, string>> = {}
     if (!form.full_name.trim()) newErrors.full_name = 'نام و نام خانوادگی الزامی است'
     if (!form.phone.trim()) {
       newErrors.phone = 'شماره موبایل الزامی است'
@@ -92,10 +126,27 @@ export default function CheckoutPage() {
         city: form.city,
         postal_code: form.postal_code,
         payment_method: form.payment_method,
+        shipping_method_id: form.shipping_method_id,
         notes: form.notes,
       })
+
+      // پرداخت آنلاین: انتقال به درگاه
+      if (form.payment_method === 'online' && payment.online_enabled) {
+        try {
+          const { redirect_url } = await initiatePayment(order.id)
+          if (redirect_url) {
+            window.location.href = redirect_url
+            return
+          }
+        } catch {
+          toast.error('خطا در اتصال به درگاه پرداخت. سفارش شما ثبت شد؛ می‌توانید از پروفایل دوباره تلاش کنید.', {
+            style: { fontFamily: 'Vazirmatn, sans-serif', direction: 'rtl' },
+          })
+        }
+      }
+
       setOrderId(order.id)
-      setCurrentStep(4)
+      setCurrentStep(5)
       toast.success('سفارش شما با موفقیت ثبت شد!', {
         style: { fontFamily: 'Vazirmatn, sans-serif', direction: 'rtl' },
       })
@@ -110,11 +161,18 @@ export default function CheckoutPage() {
 
   const items = cart?.items ?? []
   const cartTotal = cart?.total ?? 0
-  const shipping = cartTotal >= 500000 ? 0 : 30000
+
+  // هزینه ارسال بر اساس روش ارسال انتخاب‌شده (از پنل ادمین)
+  const selectedShipping = shippingMethods.find((m) => m.id === form.shipping_method_id)
+  const shipping = selectedShipping
+    ? Number(selectedShipping.free_above) > 0 && cartTotal >= Number(selectedShipping.free_above)
+      ? 0
+      : Number(selectedShipping.price)
+    : 0
   const total = cartTotal + shipping
 
   // Success state
-  if (currentStep === 4 && orderId) {
+  if (currentStep === 5 && orderId) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <div className="bg-white rounded-3xl shadow-lg p-10 max-w-md w-full text-center">
@@ -326,6 +384,52 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
+                {/* روش ارسال (از پنل ادمین) */}
+                {shippingMethods.length > 0 && (
+                  <div className="mt-6">
+                    <h3 className="text-sm font-medium text-dark mb-3 flex items-center gap-2">
+                      <Truck className="w-4 h-4 text-gold" />
+                      روش ارسال
+                    </h3>
+                    <div className="space-y-2.5">
+                      {shippingMethods.map((m) => {
+                        const free = Number(m.free_above) > 0 && cartTotal >= Number(m.free_above)
+                        return (
+                          <label
+                            key={m.id}
+                            className={`flex items-center gap-3 p-3.5 border-2 rounded-xl cursor-pointer transition-all ${
+                              form.shipping_method_id === m.id
+                                ? 'border-gold bg-gold/5'
+                                : 'border-gray-200 hover:border-gray-300'
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name="shipping"
+                              checked={form.shipping_method_id === m.id}
+                              onChange={() => setForm({ ...form, shipping_method_id: m.id })}
+                              className="w-4 h-4 accent-gold"
+                            />
+                            <div className="flex-1">
+                              <div className="font-medium text-dark text-sm">{m.name}</div>
+                              {(m.description || m.estimated_days) && (
+                                <div className="text-xs text-gray-400 mt-0.5">
+                                  {m.description}
+                                  {m.description && m.estimated_days ? ' — ' : ''}
+                                  {m.estimated_days}
+                                </div>
+                              )}
+                            </div>
+                            <span className={`text-sm font-medium ${free ? 'text-green-600' : 'text-dark'}`}>
+                              {free ? 'رایگان' : formatPrice(Number(m.price))}
+                            </span>
+                          </label>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex justify-end mt-6">
                   <button
                     onClick={handleStep1}
@@ -347,64 +451,68 @@ export default function CheckoutPage() {
                 </h2>
 
                 <div className="space-y-3 mb-8">
-                  <label
-                    className={`flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all ${
-                      form.payment_method === 'online'
-                        ? 'border-gold bg-gold/5'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="payment"
-                      value="online"
-                      checked={form.payment_method === 'online'}
-                      onChange={() => setForm({ ...form, payment_method: 'online' })}
-                      className="w-4 h-4 accent-gold"
-                    />
-                    <CreditCard className="w-6 h-6 text-gold" />
-                    <div>
-                      <div className="font-medium text-dark">پرداخت آنلاین</div>
-                      <div className="text-xs text-gray-400 mt-0.5">
-                        از طریق درگاه بانکی معتبر — پرداخت فوری
+                  {payment.online_enabled && (
+                    <label
+                      className={`flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                        form.payment_method === 'online'
+                          ? 'border-gold bg-gold/5'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="payment"
+                        value="online"
+                        checked={form.payment_method === 'online'}
+                        onChange={() => setForm({ ...form, payment_method: 'online' })}
+                        className="w-4 h-4 accent-gold"
+                      />
+                      <CreditCard className="w-6 h-6 text-gold" />
+                      <div>
+                        <div className="font-medium text-dark">پرداخت آنلاین</div>
+                        <div className="text-xs text-gray-400 mt-0.5">
+                          از طریق درگاه بانکی معتبر — پرداخت فوری
+                        </div>
                       </div>
-                    </div>
-                  </label>
+                    </label>
+                  )}
 
-                  <label
-                    className={`flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all ${
-                      form.payment_method === 'card_to_card'
-                        ? 'border-gold bg-gold/5'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="payment"
-                      value="card_to_card"
-                      checked={form.payment_method === 'card_to_card'}
-                      onChange={() =>
-                        setForm({ ...form, payment_method: 'card_to_card' })
-                      }
-                      className="w-4 h-4 accent-gold"
-                    />
-                    <Wallet className="w-6 h-6 text-gold" />
-                    <div>
-                      <div className="font-medium text-dark">کارت به کارت</div>
-                      <div className="text-xs text-gray-400 mt-0.5">
-                        واریز مستقیم به حساب — پردازش دستی توسط تیم ما
+                  {payment.card_to_card_enabled && (
+                    <label
+                      className={`flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                        form.payment_method === 'card_to_card'
+                          ? 'border-gold bg-gold/5'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="payment"
+                        value="card_to_card"
+                        checked={form.payment_method === 'card_to_card'}
+                        onChange={() =>
+                          setForm({ ...form, payment_method: 'card_to_card' })
+                        }
+                        className="w-4 h-4 accent-gold"
+                      />
+                      <Wallet className="w-6 h-6 text-gold" />
+                      <div>
+                        <div className="font-medium text-dark">کارت به کارت</div>
+                        <div className="text-xs text-gray-400 mt-0.5">
+                          واریز مستقیم به حساب — پردازش دستی توسط تیم ما
+                        </div>
                       </div>
-                    </div>
-                  </label>
+                    </label>
+                  )}
                 </div>
 
-                {form.payment_method === 'card_to_card' && (
+                {form.payment_method === 'card_to_card' && payment.card_to_card_enabled && (
                   <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 text-sm text-amber-700">
                     <p className="font-medium mb-1">شماره کارت برای واریز:</p>
                     <p className="font-mono text-base" dir="ltr">
-                      6037-9970-1234-5678
+                      {payment.card_number || '6037-9970-1234-5678'}
                     </p>
-                    <p className="mt-1 text-xs">به نام: علی اصغر کیانی</p>
+                    <p className="mt-1 text-xs">به نام: {payment.card_holder || 'علی اصغر کیانی'}</p>
                   </div>
                 )}
 
@@ -482,7 +590,9 @@ export default function CheckoutPage() {
                     ) : (
                       <Check className="w-5 h-5" />
                     )}
-                    ثبت نهایی سفارش
+                    {form.payment_method === 'online' && payment.online_enabled
+                      ? 'پرداخت و ثبت سفارش'
+                      : 'ثبت نهایی سفارش'}
                   </button>
                 </div>
               </div>

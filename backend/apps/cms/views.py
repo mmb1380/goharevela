@@ -7,7 +7,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from .models import Menu, SiteSettings
+from .models import Menu, PaymentSettings, ShippingMethod, SiteSettings, SmsSettings
 
 SETTINGS_FIELDS = [
     'brand_name',
@@ -44,4 +44,36 @@ def site_config(request):
             for item in menu.items.all()
         ]
 
-    return Response({'settings': settings_data, 'menus': menus})
+    # تنظیمات پرداخت (فقط اطلاعات لازم برای نمایش — بدون کلید/مرچنت)
+    pay = PaymentSettings.load(request_or_site=request)
+    payment = {
+        'online_enabled': pay.online_enabled,
+        'card_to_card_enabled': pay.card_to_card_enabled,
+        'card_number': pay.card_number,
+        'card_holder': pay.card_holder,
+    }
+
+    # روش‌های ارسال فعال
+    shipping = [
+        {
+            'id': sm.id,
+            'name': sm.name,
+            'description': sm.description,
+            'price': str(sm.price),
+            'free_above': str(sm.free_above),
+            'estimated_days': sm.estimated_days,
+        }
+        for sm in ShippingMethod.objects.filter(is_enabled=True)
+    ]
+
+    # وضعیت پیامک (برای فعال‌سازی ورود/تأیید پیامکی در فرانت)
+    sms = SmsSettings.load(request_or_site=request)
+    sms_data = {'enabled': sms.enabled}
+
+    return Response({
+        'settings': settings_data,
+        'menus': menus,
+        'payment': payment,
+        'shipping': shipping,
+        'sms': sms_data,
+    })

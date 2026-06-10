@@ -95,6 +95,167 @@ class SiteSettings(BaseGenericSetting):
         verbose_name = 'تنظیمات سایت'
 
 
+@register_setting
+class PaymentSettings(BaseGenericSetting):
+    """تنظیمات درگاه پرداخت."""
+
+    PROVIDER_CHOICES = [
+        ('zarinpal', 'زرین‌پال'),
+        ('idpay', 'آی‌دی‌پی'),
+    ]
+
+    online_enabled = models.BooleanField(
+        default=False,
+        verbose_name='پرداخت آنلاین فعال',
+        help_text='گزینه پرداخت آنلاین در سبد خرید نمایش داده شود.',
+    )
+    provider = models.CharField(
+        max_length=20,
+        choices=PROVIDER_CHOICES,
+        default='zarinpal',
+        verbose_name='درگاه پرداخت',
+    )
+    merchant_id = models.CharField(
+        max_length=200,
+        blank=True,
+        verbose_name='کد پذیرنده / API Key',
+        help_text='زرین‌پال: Merchant ID — آی‌دی‌پی: API Key',
+    )
+    sandbox = models.BooleanField(
+        default=True,
+        verbose_name='حالت آزمایشی (Sandbox)',
+        help_text='در حالت آزمایشی پرداخت واقعی انجام نمی‌شود.',
+    )
+    card_to_card_enabled = models.BooleanField(
+        default=True,
+        verbose_name='کارت به کارت فعال',
+    )
+    card_number = models.CharField(
+        max_length=25,
+        blank=True,
+        verbose_name='شماره کارت',
+        help_text='مثال: 6037-9970-XXXX-XXXX',
+    )
+    card_holder = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name='نام صاحب کارت',
+    )
+
+    panels = [
+        MultiFieldPanel([
+            FieldPanel('online_enabled'),
+            FieldPanel('provider'),
+            FieldPanel('merchant_id'),
+            FieldPanel('sandbox'),
+        ], heading='پرداخت آنلاین'),
+        MultiFieldPanel([
+            FieldPanel('card_to_card_enabled'),
+            FieldPanel('card_number'),
+            FieldPanel('card_holder'),
+        ], heading='کارت به کارت'),
+    ]
+
+    class Meta:
+        verbose_name = 'تنظیمات پرداخت'
+
+
+@register_setting
+class SmsSettings(BaseGenericSetting):
+    """تنظیمات ارسال پیامک."""
+
+    PROVIDER_CHOICES = [
+        ('kavenegar', 'کاوه‌نگار'),
+        ('smsir', 'اس‌ام‌اس.آی‌آر'),
+    ]
+
+    enabled = models.BooleanField(default=False, verbose_name='پیامک فعال')
+    provider = models.CharField(
+        max_length=20,
+        choices=PROVIDER_CHOICES,
+        default='kavenegar',
+        verbose_name='سرویس پیامک',
+    )
+    api_key = models.CharField(max_length=300, blank=True, verbose_name='API Key')
+    sender = models.CharField(
+        max_length=20,
+        blank=True,
+        verbose_name='شماره فرستنده',
+        help_text='در صورت داشتن خط اختصاصی وارد کنید.',
+    )
+    otp_template = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name='نام قالب OTP',
+        help_text='نام قالب پیامک تأیید هویت (مثال: verify-code)',
+    )
+    order_confirm_template = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name='نام قالب تأیید سفارش',
+    )
+
+    panels = [
+        FieldPanel('enabled'),
+        FieldPanel('provider'),
+        FieldPanel('api_key'),
+        FieldPanel('sender'),
+        MultiFieldPanel([
+            FieldPanel('otp_template'),
+            FieldPanel('order_confirm_template'),
+        ], heading='قالب‌های پیامک'),
+    ]
+
+    class Meta:
+        verbose_name = 'تنظیمات پیامک'
+
+
+@register_snippet
+class ShippingMethod(models.Model):
+    """روش ارسال — قابل مدیریت از پنل Wagtail."""
+
+    name = models.CharField(max_length=100, verbose_name='نام روش ارسال')
+    description = models.CharField(max_length=300, blank=True, verbose_name='توضیح')
+    price = models.DecimalField(
+        max_digits=10,
+        decimal_places=0,
+        verbose_name='هزینه ارسال (تومان)',
+    )
+    free_above = models.DecimalField(
+        max_digits=12,
+        decimal_places=0,
+        default=0,
+        verbose_name='ارسال رایگان بالای (تومان)',
+        help_text='اگر مبلغ سبد از این رقم بیشتر باشد هزینه ارسال صفر می‌شود. ۰ یعنی ارسال رایگان نداریم.',
+    )
+    estimated_days = models.CharField(
+        max_length=50,
+        blank=True,
+        verbose_name='زمان تحویل',
+        help_text='مثال: ۳ تا ۵ روز کاری',
+    )
+    is_enabled = models.BooleanField(default=True, verbose_name='فعال')
+    sort_order = models.PositiveSmallIntegerField(default=0, verbose_name='ترتیب نمایش')
+
+    panels = [
+        FieldPanel('name'),
+        FieldPanel('description'),
+        FieldPanel('price'),
+        FieldPanel('free_above'),
+        FieldPanel('estimated_days'),
+        FieldPanel('is_enabled'),
+        FieldPanel('sort_order'),
+    ]
+
+    class Meta:
+        verbose_name = 'روش ارسال'
+        verbose_name_plural = 'روش‌های ارسال'
+        ordering = ['sort_order', 'id']
+
+    def __str__(self):
+        return self.name
+
+
 @register_snippet
 class Menu(ClusterableModel):
     """منوی قابل‌ویرایش (هدر، فوتر) با آیتم‌های قابل‌جابجایی."""

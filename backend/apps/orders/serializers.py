@@ -150,6 +150,17 @@ class OrderSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+class ShippingMethodSerializer(serializers.Serializer):
+    """Read serializer for shipping methods exposed to the frontend."""
+    id = serializers.IntegerField()
+    name = serializers.CharField()
+    description = serializers.CharField()
+    price = serializers.DecimalField(max_digits=10, decimal_places=0)
+    free_above = serializers.DecimalField(max_digits=12, decimal_places=0)
+    estimated_days = serializers.CharField()
+    is_enabled = serializers.BooleanField()
+
+
 class OrderCreateSerializer(serializers.Serializer):
     """Write serializer for creating an order from the current cart."""
 
@@ -167,6 +178,7 @@ class OrderCreateSerializer(serializers.Serializer):
         choices=Order.PAYMENT_METHOD_CHOICES,
         label='روش پرداخت',
     )
+    shipping_method_id = serializers.IntegerField(required=False, allow_null=True, label='روش ارسال')
     coupon_code = serializers.CharField(
         required=False,
         allow_blank=True,
@@ -213,7 +225,18 @@ class OrderCreateSerializer(serializers.Serializer):
                 )
 
         subtotal = sum(item.subtotal for item in items)
-        shipping_cost = Decimal('0')  # Free shipping; customise as needed
+
+        # Resolve shipping cost from selected ShippingMethod (if any)
+        shipping_cost = Decimal('0')
+        shipping_method_id = data.get('shipping_method_id')
+        if shipping_method_id:
+            try:
+                from apps.cms.models import ShippingMethod
+                sm = ShippingMethod.objects.get(pk=shipping_method_id, is_enabled=True)
+                shipping_cost = sm.price if (sm.free_above == 0 or subtotal < sm.free_above) else Decimal('0')
+            except Exception:
+                pass
+
         coupon = data.get('coupon')
         discount_amount = Decimal('0')
 

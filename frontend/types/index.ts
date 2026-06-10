@@ -159,6 +159,7 @@ export interface OrderCreateData {
   city: string
   postal_code: string
   payment_method: string
+  shipping_method_id?: number | null
   notes?: string
 }
 
@@ -276,7 +277,26 @@ export interface MenuLink {
   open_in_new_tab: boolean
 }
 
+export interface PaymentConfig {
+  online_enabled: boolean
+  card_to_card_enabled: boolean
+  card_number: string
+  card_holder: string
+}
+
+export interface ShippingMethod {
+  id: number
+  name: string
+  description: string
+  price: string
+  free_above: string
+  estimated_days: string
+}
+
 export interface SiteConfig {
   settings: SiteSettings
   menus: Record<string, MenuLink[]>
+  payment: PaymentConfig
+  shipping: ShippingMethod[]
+  sms: { enabled: boolean }
 }

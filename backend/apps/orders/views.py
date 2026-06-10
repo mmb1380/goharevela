@@ -1,7 +1,11 @@
 """
 Views for the orders app.
 """
-from django.shortcuts import get_object_or_404
+from decimal import Decimal
+
+from django.conf import settings as django_settings
+from django.shortcuts import get_object_or_404, redirect
+from django.utils import timezone
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -10,12 +14,14 @@ from rest_framework.views import APIView
 from apps.products.models import Product
 
 from .models import Cart, CartItem, Order
+from .payment import get_payment_adapter
 from .serializers import (
     CartItemSerializer,
     CartSerializer,
     CouponValidateSerializer,
     OrderCreateSerializer,
     OrderSerializer,
+    ShippingMethodSerializer,
 )
 
 
@@ -179,6 +185,17 @@ class OrderViewSet(viewsets.GenericViewSet):
             order = serializer.create_order(cart)
         except Exception as exc:
             return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Send SMS confirmation now only for non-online methods; for online
+        # payments the confirmation is sent after a successful gateway callback.
+        if order.payment_method != 'online':
+            try:
+                from .sms import get_sms_adapter
+                sms = get_sms_adapter()
+                sms.send_order_confirmation(order.phone, order.order_number, str(int(order.total)))
+            except Exception:
+                pass
+
         return Response(
             OrderSerializer(order, context={'request': request}).data,
             status=status.HTTP_201_CREATED,
@@ -211,3 +228,100 @@ class CouponValidateView(APIView):
                 'message': 'کد تخفیف معتبر است.',
             }
         )
+
+
+# ---------------------------------------------------------------------------
+# Shipping methods
+# ---------------------------------------------------------------------------
+
+class ShippingMethodListView(APIView):
+    """GET /api/orders/shipping/ – list enabled shipping methods."""
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        from apps.cms.models import ShippingMethod
+        methods = ShippingMethod.objects.filter(is_enabled=True)
+        serializer = ShippingMethodSerializer(methods, many=True)
+        return Response(serializer.data)
+
+
+# ---------------------------------------------------------------------------
+# Online payment
+# ---------------------------------------------------------------------------
+
+class PaymentInitiateView(APIView):
+    """
+    POST /api/orders/<id>/pay/
+    Initiate online payment for a pending order.
+    Returns {redirect_url} to which the frontend should redirect the user.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk=None):
+        order = get_object_or_404(Order, pk=pk, user=request.user)
+        if order.status != 'pending':
+            return Response({'detail': 'این سفارش قابل پرداخت نیست.'}, status=status.HTTP_400_BAD_REQUEST)
+        if order.payment_method != 'online':
+            return Response({'detail': 'روش پرداخت این سفارش آنلاین نیست.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Build callback URL: absolute URL pointing to our callback view
+        callback_url = request.build_absolute_uri(f'/api/orders/payment/callback/?order_id={order.id}')
+
+        adapter = get_payment_adapter()
+        result = adapter.request_payment(order, callback_url)
+
+        if result['status'] == 'ok':
+            # Store authority/id so we can match on callback
+            Order.objects.filter(pk=order.pk).update(transaction_id=result.get('authority', ''))
+            return Response({'redirect_url': result['redirect_url'], 'message': result['message']})
+
+        return Response({'detail': result['message']}, status=status.HTTP_502_BAD_GATEWAY)
+
+
+class PaymentCallbackView(APIView):
+    """
+    GET /api/orders/payment/callback/
+    Payment gateway callback — verifies payment and updates order status.
+    Redirects user's browser to the frontend result page.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        return self._handle(request)
+
+    def post(self, request):
+        return self._handle(request)
+
+    def _handle(self, request):
+        params = {**request.GET.dict(), **request.data} if hasattr(request, 'data') else request.GET.dict()
+        order_id = params.get('order_id')
+        frontend_base = getattr(django_settings, 'FRONTEND_URL', '')
+
+        if not order_id:
+            return redirect(f'{frontend_base}/profile?payment=failed')
+
+        try:
+            order = Order.objects.get(pk=order_id, status='pending', payment_method='online')
+        except Order.DoesNotExist:
+            return redirect(f'{frontend_base}/profile?payment=failed')
+
+        adapter = get_payment_adapter()
+        result = adapter.verify_payment(order, params)
+
+        if result['status'] == 'ok':
+            Order.objects.filter(pk=order.pk).update(
+                status='paid',
+                transaction_id=result.get('transaction_id', order.transaction_id),
+                paid_at=timezone.now(),
+            )
+            # Reload to get updated instance for SMS
+            order.refresh_from_db()
+            try:
+                from .sms import get_sms_adapter
+                sms = get_sms_adapter()
+                sms.send_order_confirmation(order.phone, order.order_number, str(int(order.total)))
+            except Exception:
+                pass
+            return redirect(f'{frontend_base}/profile?payment=success&order={order.order_number}')
+
+        return redirect(f'{frontend_base}/profile?payment=failed&order={order.order_number}')

@@ -1,7 +1,11 @@
 """
 Views for the accounts app.
 """
+import random
+import string
+
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -16,6 +20,8 @@ from .serializers import (
 )
 
 User = get_user_model()
+
+OTP_TTL = 300  # 5 minutes
 
 
 def _get_tokens_for_user(user):
@@ -120,5 +126,76 @@ class ChangePasswordView(APIView):
         serializer.save()
         return Response(
             {'detail': 'رمز عبور با موفقیت تغییر یافت.'},
+            status=status.HTTP_200_OK,
+        )
+
+
+# ---------------------------------------------------------------------------
+# SMS OTP (phone verification)
+# ---------------------------------------------------------------------------
+
+def _otp_cache_key(phone: str) -> str:
+    return f'otp:{phone}'
+
+
+class RequestOTPView(APIView):
+    """
+    POST /api/accounts/otp/request/  body: {phone}
+    Generate and send a one-time code. Works only when SMS is enabled in the
+    admin panel; otherwise the code is logged (دیتای کد در پاسخ برنمی‌گردد).
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        phone = (request.data.get('phone') or '').strip()
+        if not phone.startswith('09') or len(phone) != 11 or not phone.isdigit():
+            return Response(
+                {'detail': 'شماره موبایل معتبر نیست.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        code = ''.join(random.choices(string.digits, k=5))
+        cache.set(_otp_cache_key(phone), code, OTP_TTL)
+
+        try:
+            from apps.orders.sms import get_sms_adapter
+            get_sms_adapter().send_otp(phone, code)
+        except Exception:
+            pass
+
+        return Response(
+            {'detail': 'کد تأیید ارسال شد.', 'expires_in': OTP_TTL},
+            status=status.HTTP_200_OK,
+        )
+
+
+class VerifyOTPView(APIView):
+    """
+    POST /api/accounts/otp/verify/  body: {phone, code}
+    Verify the OTP code. On success returns JWT tokens, creating the user if
+    they don't already exist (phone-based passwordless login).
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        phone = (request.data.get('phone') or '').strip()
+        code = (request.data.get('code') or '').strip()
+
+        cached = cache.get(_otp_cache_key(phone))
+        if not cached or cached != code:
+            return Response(
+                {'detail': 'کد تأیید نادرست یا منقضی شده است.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        cache.delete(_otp_cache_key(phone))
+
+        user, _created = User.objects.get_or_create(
+            phone=phone,
+            defaults={'username': phone},
+        )
+        tokens = _get_tokens_for_user(user)
+        return Response(
+            {'user': UserSerializer(user).data, **tokens},
             status=status.HTTP_200_OK,
         )

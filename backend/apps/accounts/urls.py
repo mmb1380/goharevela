@@ -9,6 +9,8 @@ from .views import (
     LogoutView,
     ProfileView,
     RegisterView,
+    RequestOTPView,
+    VerifyOTPView,
 )
 
 app_name = 'accounts'
@@ -19,4 +21,6 @@ urlpatterns = [
     path('logout/', LogoutView.as_view(), name='logout'),
     path('profile/', ProfileView.as_view(), name='profile'),
     path('change-password/', ChangePasswordView.as_view(), name='change-password'),
+    path('otp/request/', RequestOTPView.as_view(), name='otp-request'),
+    path('otp/verify/', VerifyOTPView.as_view(), name='otp-verify'),
 ]
