@@ -10,6 +10,7 @@ import {
   ProductQueryParams,
   RegisterData,
   Review,
+  SiteConfig,
   StoneType,
   User,
 } from '@/types'
@@ -147,6 +148,15 @@ export const getHomePage = async (): Promise<HomePageData | null> => {
     })
     const items = res.data.items ?? []
     return items.length > 0 ? (items[0] as HomePageData) : null
+  } catch {
+    return null
+  }
+}
+
+export const getSiteConfig = async (): Promise<SiteConfig | null> => {
+  try {
+    const res = await api.get('/site/config/')
+    return res.data as SiteConfig
   } catch {
     return null
   }

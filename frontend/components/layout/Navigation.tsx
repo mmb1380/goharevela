@@ -5,21 +5,32 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Menu, X, ChevronDown } from 'lucide-react'
 import { getCategories } from '@/lib/api'
-import { Category } from '@/types'
+import { loadSiteConfig } from '@/lib/siteConfig'
+import { Category, MenuLink } from '@/types'
 import { cn } from '@/lib/utils'
 
-type MenuItem = { label: string; href: string; slug?: string }
+type MenuItem = { label: string; href: string; slug?: string; newTab?: boolean }
+
+// استخراج اسلاگ دسته‌بندی از لینک (برای نمایش زیرمنو)
+function categorySlugFromLink(link: string): string | undefined {
+  if (!link.includes('category=')) return undefined
+  return decodeURIComponent(link.split('category=')[1]?.split('&')[0] ?? '') || undefined
+}
 
 export default function Navigation() {
   const pathname = usePathname()
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [categories, setCategories] = useState<Category[]>([])
+  const [mainMenu, setMainMenu] = useState<MenuLink[]>([])
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const dropdownTimeout = useRef<NodeJS.Timeout>()
 
   useEffect(() => {
     getCategories()
       .then(setCategories)
+      .catch(() => {})
+    loadSiteConfig()
+      .then((cfg) => setMainMenu(cfg?.menus?.main ?? []))
       .catch(() => {})
   }, [])
 
@@ -28,16 +39,25 @@ export default function Navigation() {
     .filter((c) => c.parent === null && c.is_active !== false)
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
 
-  const menuItems: MenuItem[] = [
-    { label: 'خانه', href: '/' },
-    ...topCategories.map((c) => ({
-      label: c.name,
-      href: `/products?category=${c.slug}`,
-      slug: c.slug,
-    })),
-    { label: 'وبلاگ', href: '/blog' },
-    { label: 'تماس با ما', href: '/contact' },
-  ]
+  // اگر منوی اصلی در پنل تعریف شده باشد از آن استفاده می‌شود، وگرنه چیدمان پیش‌فرض
+  const menuItems: MenuItem[] =
+    mainMenu.length > 0
+      ? mainMenu.map((m) => ({
+          label: m.label,
+          href: m.link,
+          slug: categorySlugFromLink(m.link),
+          newTab: m.open_in_new_tab,
+        }))
+      : [
+          { label: 'خانه', href: '/' },
+          ...topCategories.map((c) => ({
+            label: c.name,
+            href: `/products?category=${c.slug}`,
+            slug: c.slug,
+          })),
+          { label: 'وبلاگ', href: '/blog' },
+          { label: 'تماس با ما', href: '/contact' },
+        ]
 
   const getCategoryChildren = (slug: string): Category[] => {
     const cat = categories.find((c) => c.slug === slug)

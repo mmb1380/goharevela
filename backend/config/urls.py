@@ -47,6 +47,7 @@ urlpatterns = [
     path('api/accounts/', include('apps.accounts.urls', namespace='accounts')),
     path('api/products/', include('apps.products.urls', namespace='products')),
     path('api/orders/', include('apps.orders.urls', namespace='orders')),
+    path('api/site/', include('apps.cms.urls', namespace='site')),
 
     # Wagtail front-end (catch-all – must be last)
     path('', include(wagtail_urls)),

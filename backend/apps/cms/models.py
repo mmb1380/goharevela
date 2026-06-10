@@ -5,9 +5,11 @@ from django import forms
 from django.db import models
 from modelcluster.contrib.taggit import ClusterTaggableManager
 from modelcluster.fields import ParentalKey, ParentalManyToManyField
+from modelcluster.models import ClusterableModel
 from taggit.models import TaggedItemBase
 from wagtail.admin.panels import FieldPanel, InlinePanel, MultiFieldPanel, ObjectList, TabbedInterface
 from wagtail.api import APIField
+from wagtail.contrib.settings.models import BaseGenericSetting, register_setting
 from wagtail.blocks import (
     CharBlock,
     RichTextBlock,
@@ -42,43 +44,105 @@ class FooterText(models.Model):
         return 'متن فوتر'
 
 
-@register_snippet
-class SiteConfiguration(models.Model):
-    """Global site configuration snippet."""
-    phone = models.CharField(max_length=20, blank=True, verbose_name='تلفن')
+@register_setting
+class SiteSettings(BaseGenericSetting):
+    """تنظیمات سراسری سایت (برند، تماس، شبکه‌های اجتماعی، نوار بالا)."""
+
+    # برند
+    brand_name = models.CharField(max_length=100, default='گوهر ولا', verbose_name='نام برند')
+    brand_latin = models.CharField(max_length=100, blank=True, default='GOHAREVELA', verbose_name='نام لاتین برند')
+    brand_description = models.TextField(blank=True, verbose_name='توضیح برند (فوتر)')
+
+    # تماس
+    phone_primary = models.CharField(max_length=20, blank=True, verbose_name='تلفن ثابت')
+    phone_secondary = models.CharField(max_length=20, blank=True, verbose_name='تلفن همراه')
     email = models.EmailField(blank=True, verbose_name='ایمیل')
     address = models.TextField(blank=True, verbose_name='آدرس')
+    working_hours = models.CharField(max_length=200, blank=True, verbose_name='ساعت کاری')
+
+    # شبکه‌های اجتماعی
     instagram = models.URLField(blank=True, verbose_name='اینستاگرام')
     telegram = models.URLField(blank=True, verbose_name='تلگرام')
-    whatsapp = models.CharField(max_length=20, blank=True, verbose_name='واتس‌اپ')
-    logo = models.ForeignKey(
-        'wagtailimages.Image',
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name='+',
-        verbose_name='لوگو',
-    )
+    whatsapp = models.URLField(blank=True, verbose_name='واتس‌اپ')
+    aparat = models.URLField(blank=True, verbose_name='آپارات')
+
+    # نوار بالای هدر
+    topbar_message = models.CharField(max_length=200, blank=True, verbose_name='پیام نوار بالا')
 
     panels = [
         MultiFieldPanel([
-            FieldPanel('phone'),
+            FieldPanel('brand_name'),
+            FieldPanel('brand_latin'),
+            FieldPanel('brand_description'),
+        ], heading='برند'),
+        MultiFieldPanel([
+            FieldPanel('phone_primary'),
+            FieldPanel('phone_secondary'),
             FieldPanel('email'),
             FieldPanel('address'),
+            FieldPanel('working_hours'),
         ], heading='اطلاعات تماس'),
         MultiFieldPanel([
             FieldPanel('instagram'),
             FieldPanel('telegram'),
             FieldPanel('whatsapp'),
+            FieldPanel('aparat'),
         ], heading='شبکه‌های اجتماعی'),
-        FieldPanel('logo'),
+        FieldPanel('topbar_message'),
     ]
 
     class Meta:
         verbose_name = 'تنظیمات سایت'
 
+
+@register_snippet
+class Menu(ClusterableModel):
+    """منوی قابل‌ویرایش (هدر، فوتر) با آیتم‌های قابل‌جابجایی."""
+
+    HANDLE_CHOICES = [
+        ('main', 'منوی اصلی (هدر)'),
+        ('footer_quick', 'دسترسی سریع (فوتر)'),
+        ('footer_bottom', 'لینک‌های پایین (فوتر)'),
+    ]
+
+    title = models.CharField(max_length=100, verbose_name='عنوان')
+    handle = models.SlugField(
+        unique=True,
+        choices=HANDLE_CHOICES,
+        verbose_name='شناسه',
+        help_text='تعیین می‌کند این منو کجای سایت نمایش داده شود.',
+    )
+
+    panels = [
+        FieldPanel('title'),
+        FieldPanel('handle'),
+        InlinePanel('items', label='آیتم‌ها'),
+    ]
+
+    class Meta:
+        verbose_name = 'منو'
+        verbose_name_plural = 'منوها'
+
     def __str__(self):
-        return 'تنظیمات سایت'
+        return self.title
+
+
+class MenuItem(Orderable):
+    """یک آیتم منو."""
+
+    menu = ParentalKey(Menu, on_delete=models.CASCADE, related_name='items')
+    label = models.CharField(max_length=100, verbose_name='متن')
+    link = models.CharField(max_length=300, verbose_name='لینک', help_text='مثال: /products یا /blog')
+    open_in_new_tab = models.BooleanField(default=False, verbose_name='باز شدن در تب جدید')
+
+    panels = [
+        FieldPanel('label'),
+        FieldPanel('link'),
+        FieldPanel('open_in_new_tab'),
+    ]
+
+    def __str__(self):
+        return self.label
 
 
 # ---------------------------------------------------------------------------

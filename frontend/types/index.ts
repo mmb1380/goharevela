@@ -251,3 +251,32 @@ export interface HomePageData {
   title: string
   body: HomeBlock[]
 }
+
+// ─── Site settings & menus ──────────────────────────────────────────────────
+
+export interface SiteSettings {
+  brand_name: string
+  brand_latin: string
+  brand_description: string
+  phone_primary: string
+  phone_secondary: string
+  email: string
+  address: string
+  working_hours: string
+  instagram: string
+  telegram: string
+  whatsapp: string
+  aparat: string
+  topbar_message: string
+}
+
+export interface MenuLink {
+  label: string
+  link: string
+  open_in_new_tab: boolean
+}
+
+export interface SiteConfig {
+  settings: SiteSettings
+  menus: Record<string, MenuLink[]>
+}

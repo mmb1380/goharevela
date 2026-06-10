@@ -6,17 +6,30 @@ import { Search, ShoppingBag, User, Phone, Clock, Instagram } from 'lucide-react
 import { useRouter } from 'next/navigation'
 import { useCartStore } from '@/lib/store'
 import { useAuthStore } from '@/lib/store'
+import { loadSiteConfig } from '@/lib/siteConfig'
 import { toPersianDigits } from '@/lib/utils'
+import type { SiteSettings } from '@/types'
 
 export default function Header() {
   const router = useRouter()
   const [search, setSearch] = useState('')
+  const [settings, setSettings] = useState<SiteSettings | null>(null)
   const { cart, openCart, fetchCart } = useCartStore()
   const { isAuthenticated, user } = useAuthStore()
 
   useEffect(() => {
     fetchCart()
+    loadSiteConfig()
+      .then((cfg) => setSettings(cfg?.settings ?? null))
+      .catch(() => {})
   }, [fetchCart])
+
+  const phone = settings?.phone_primary || '۰۲۱-۸۸۰۰۱۲۳۴'
+  const workingHours = settings?.working_hours || 'شنبه تا پنج‌شنبه ۹ تا ۱۸'
+  const topbarMessage =
+    settings?.topbar_message || 'ارسال رایگان برای خریدهای بالای ۵۰۰ هزار تومان'
+  const brandName = settings?.brand_name || 'گوهر ولا'
+  const brandLatin = settings?.brand_latin || 'GOHAREVELA'
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -34,20 +47,20 @@ export default function Header() {
         <div className="container mx-auto px-4 flex items-center justify-between text-xs">
           <div className="flex items-center gap-4">
             <a
-              href="tel:+982188001234"
+              href={`tel:${phone}`}
               className="flex items-center gap-1.5 hover:text-gold transition-colors"
             >
               <Phone className="w-3.5 h-3.5" />
-              <span>{toPersianDigits('021-88001234')}</span>
+              <span>{toPersianDigits(phone)}</span>
             </a>
             <span className="flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5" />
-              <span>شنبه تا پنج‌شنبه ۹ تا ۱۸</span>
+              <span>{workingHours}</span>
             </span>
           </div>
           <div className="flex items-center gap-3">
             <a
-              href="https://instagram.com/goharevela"
+              href={settings?.instagram || 'https://instagram.com/goharevela'}
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-gold transition-colors"
@@ -56,7 +69,7 @@ export default function Header() {
               <Instagram className="w-4 h-4" />
             </a>
             <a
-              href="https://t.me/goharevela"
+              href={settings?.telegram || 'https://t.me/goharevela'}
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-gold transition-colors text-sm"
@@ -65,7 +78,7 @@ export default function Header() {
               ✈
             </a>
             <span className="text-gray-600">|</span>
-            <span>ارسال رایگان برای خریدهای بالای ۵۰۰ هزار تومان</span>
+            <span>{topbarMessage}</span>
           </div>
         </div>
       </div>
@@ -83,10 +96,10 @@ export default function Header() {
                 <span className="text-3xl leading-none">💎</span>
                 <div>
                   <div className="text-xl font-bold text-dark group-hover:text-gold transition-colors leading-tight">
-                    گوهر ولا
+                    {brandName}
                   </div>
                   <div className="text-xs text-gray-500 tracking-widest">
-                    GOHAREVELA
+                    {brandLatin}
                   </div>
                 </div>
               </div>
