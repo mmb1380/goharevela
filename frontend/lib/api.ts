@@ -2,6 +2,7 @@ import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios'
 import {
   Cart,
   Category,
+  HomePageData,
   Order,
   OrderCreateData,
   PaginatedResponse,
@@ -135,6 +136,20 @@ export const getCategories = async (): Promise<Category[]> => {
 export const getCategory = async (slug: string): Promise<Category> => {
   const res = await api.get(`/products/categories/${slug}/`)
   return res.data
+}
+
+// ─── Home page (Wagtail CMS) ────────────────────────────────────────────────
+
+export const getHomePage = async (): Promise<HomePageData | null> => {
+  try {
+    const res = await api.get('/cms/pages/', {
+      params: { type: 'cms.HomePage', fields: 'body', limit: 1 },
+    })
+    const items = res.data.items ?? []
+    return items.length > 0 ? (items[0] as HomePageData) : null
+  } catch {
+    return null
+  }
 }
 
 // ─── Stone Types ──────────────────────────────────────────────────────────────

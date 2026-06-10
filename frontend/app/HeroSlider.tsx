@@ -4,8 +4,9 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { ChevronRight, ChevronLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import type { HeroSlide } from '@/types'
 
-const slides = [
+const DEFAULT_SLIDES = [
   {
     id: 1,
     title: 'زیورآلات نقره اصیل ایرانی',
@@ -35,7 +36,20 @@ const slides = [
   },
 ]
 
-export default function HeroSlider() {
+export default function HeroSlider({ slides: cmsSlides }: { slides?: HeroSlide[] }) {
+  const slides =
+    cmsSlides && cmsSlides.length > 0
+      ? cmsSlides.map((s, i) => ({
+          id: i,
+          title: s.title,
+          subtitle: s.subtitle ?? '',
+          cta: s.cta_text ?? 'مشاهده',
+          href: s.cta_link || '/products',
+          badge: s.badge ?? '',
+          accent: s.accent || '#b8860b',
+        }))
+      : DEFAULT_SLIDES
+
   const [current, setCurrent] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
 

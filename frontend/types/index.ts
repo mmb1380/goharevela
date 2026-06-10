@@ -180,3 +180,74 @@ export interface BlogPost {
   created_at: string
   read_time: number
 }
+
+// ─── Home page CMS blocks ───────────────────────────────────────────────────
+
+export interface HeroSlide {
+  title: string
+  subtitle?: string
+  badge?: string
+  cta_text?: string
+  cta_link?: string
+  accent?: string
+}
+
+export interface TrustItem {
+  icon: string
+  title: string
+  description?: string
+}
+
+export interface FeatureItem {
+  icon: string
+  title: string
+  description: string
+}
+
+export type HomeBlock =
+  | { type: 'hero_slider'; id: string; value: { slides: HeroSlide[] } }
+  | { type: 'trust_bar'; id: string; value: { items: TrustItem[] } }
+  | { type: 'categories'; id: string; value: { heading: string; subheading?: string } }
+  | {
+      type: 'products'
+      id: string
+      value: {
+        source: 'new' | 'bestsellers' | 'featured'
+        heading: string
+        subheading?: string
+        link_text?: string
+        link_url?: string
+      }
+    }
+  | {
+      type: 'special_offer'
+      id: string
+      value: {
+        badge?: string
+        title: string
+        description?: string
+        button_text?: string
+        button_link?: string
+      }
+    }
+  | {
+      type: 'features'
+      id: string
+      value: { heading: string; subheading?: string; items: FeatureItem[] }
+    }
+  | {
+      type: 'blog_preview'
+      id: string
+      value: { heading: string; subheading?: string; link_text?: string }
+    }
+  | {
+      type: 'newsletter'
+      id: string
+      value: { title: string; description?: string; button_text?: string }
+    }
+
+export interface HomePageData {
+  id: number
+  title: string
+  body: HomeBlock[]
+}
