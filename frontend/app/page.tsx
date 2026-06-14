@@ -4,6 +4,7 @@ import {
   getBestSellers,
   getFeaturedProducts,
   getCategories,
+  getBlogPosts,
 } from '@/lib/api'
 import HeroSlider from './HeroSlider'
 import {
@@ -15,7 +16,7 @@ import {
   BlogPreviewSection,
   Newsletter,
 } from '@/components/home/sections'
-import type { Category, FeatureItem, HomeBlock, Product, TrustItem } from '@/types'
+import type { BlogListItem, Category, FeatureItem, HomeBlock, Product, TrustItem } from '@/types'
 
 // Render on each request so newly added products/categories/CMS edits appear immediately.
 export const dynamic = 'force-dynamic'
@@ -38,7 +39,7 @@ const DEFAULT_FEATURES: FeatureItem[] = [
 
 function renderBlock(
   block: HomeBlock,
-  ctx: { categories: Category[]; productsBySource: Record<string, Product[]> },
+  ctx: { categories: Category[]; productsBySource: Record<string, Product[]>; blogPosts: BlogListItem[] },
 ) {
   switch (block.type) {
     case 'hero_slider':
@@ -93,6 +94,7 @@ function renderBlock(
           heading={block.value.heading}
           subheading={block.value.subheading}
           linkText={block.value.link_text}
+          posts={ctx.blogPosts}
         />
       )
     case 'newsletter':
@@ -110,12 +112,13 @@ function renderBlock(
 }
 
 export default async function HomePage() {
-  const [home, categories, newArrivals, bestSellers, featured] = await Promise.all([
+  const [home, categories, newArrivals, bestSellers, featured, blogPosts] = await Promise.all([
     getHomePage(),
     getCategories().catch(() => [] as Category[]),
     getNewArrivals().catch(() => [] as Product[]),
     getBestSellers().catch(() => [] as Product[]),
     getFeaturedProducts().catch(() => [] as Product[]),
+    getBlogPosts(3).catch(() => [] as BlogListItem[]),
   ])
 
   const productsBySource: Record<string, Product[]> = {
@@ -128,7 +131,7 @@ export default async function HomePage() {
 
   // مسیر اصلی: رندر بخش‌ها بر اساس ترتیب تعریف‌شده در پنل
   if (blocks.length > 0) {
-    return <div>{blocks.map((block) => renderBlock(block, { categories, productsBySource }))}</div>
+    return <div>{blocks.map((block) => renderBlock(block, { categories, productsBySource, blogPosts }))}</div>
   }
 
   // fallback: چیدمان پیش‌فرض (وقتی هنوز در پنل محتوایی تعریف نشده)
@@ -172,6 +175,7 @@ export default async function HomePage() {
         heading="آخرین مطالب"
         subheading="راهنمایی و اخبار دنیای جواهرات"
         linkText="مشاهده همه"
+        posts={blogPosts}
       />
       <Newsletter
         title="خبرنامه گوهر ولا"

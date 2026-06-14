@@ -7,6 +7,14 @@ const nextConfig = {
         hostname: 'localhost',
         port: '8000',
       },
+      {
+        protocol: 'https',
+        hostname: 'goharevela.ir',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.goharevela.ir',
+      },
     ],
   },
 }

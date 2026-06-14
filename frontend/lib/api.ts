@@ -1,5 +1,7 @@
 import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios'
 import {
+  BlogDetail,
+  BlogListItem,
   Cart,
   Category,
   HomePageData,
@@ -157,6 +159,54 @@ export const getSiteConfig = async (): Promise<SiteConfig | null> => {
   try {
     const res = await api.get('/site/config/')
     return res.data as SiteConfig
+  } catch {
+    return null
+  }
+}
+
+// ─── Blog (Wagtail CMS) ──────────────────────────────────────────────────────
+
+export const getBlogPosts = async (limit?: number): Promise<BlogListItem[]> => {
+  try {
+    const res = await api.get('/cms/pages/', {
+      params: {
+        type: 'cms.BlogPage',
+        fields: 'date,intro,author,cover_image,tag_list',
+        order: '-date',
+        ...(limit ? { limit } : {}),
+      },
+    })
+    return (res.data.items ?? []) as BlogListItem[]
+  } catch {
+    return []
+  }
+}
+
+export const getBlogPost = async (slug: string): Promise<BlogDetail | null> => {
+  try {
+    const res = await api.get('/cms/pages/', {
+      params: { type: 'cms.BlogPage', slug, fields: '*', limit: 1 },
+    })
+    const items = res.data.items ?? []
+    if (items.length === 0) return null
+    // Detail endpoint returns all api_fields (including the StreamField body)
+    const detail = await api.get(`/cms/pages/${items[0].id}/`)
+    return detail.data as BlogDetail
+  } catch {
+    return null
+  }
+}
+
+// تصویر داخل بدنه مقاله (بلوک image فقط شناسه تصویر را برمی‌گرداند)
+export const getWagtailImage = async (
+  id: number
+): Promise<{ url: string; title: string } | null> => {
+  try {
+    const res = await api.get(`/cms/images/${id}/`)
+    return {
+      url: res.data?.meta?.download_url ?? '',
+      title: res.data?.title ?? '',
+    }
   } catch {
     return null
   }

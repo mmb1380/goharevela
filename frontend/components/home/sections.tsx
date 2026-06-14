@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import {
   ArrowLeft,
   Shield,
@@ -12,7 +13,8 @@ import {
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import ProductGrid from '@/components/product/ProductGrid'
-import type { Category, FeatureItem, Product, TrustItem } from '@/types'
+import { getImageUrl, getPersianDate } from '@/lib/utils'
+import type { BlogListItem, Category, FeatureItem, Product, TrustItem } from '@/types'
 
 // نگاشت نام آیکن (از پنل) به آیکن lucide
 const TRUST_ICONS: Record<string, LucideIcon> = {
@@ -250,20 +252,21 @@ export function Features({
 }
 
 // ─── Blog Preview ─────────────────────────────────────────────────────────────
+const BLOG_FALLBACK_EMOJIS = ['📝', '💎', '✨']
+
 export function BlogPreviewSection({
   heading,
   subheading,
   linkText,
+  posts = [],
 }: {
   heading: string
   subheading?: string
   linkText?: string
+  posts?: BlogListItem[]
 }) {
-  const posts = [
-    { id: 1, title: 'راهنمای نگهداری زیورآلات نقره', excerpt: 'برای حفظ زیبایی و درخشش زیورآلات نقره خود باید...', date: '۱۴۰۳/۰۳/۱۵', image: '📝', slug: 'care-guide' },
-    { id: 2, title: 'تفاوت نقره ۹۲۵ و ۹۹۹', excerpt: 'آشنایی با انواع عیار نقره و تفاوت‌های کاربردی آن‌ها...', date: '۱۴۰۳/۰۳/۰۸', image: '💎', slug: 'silver-grades' },
-    { id: 3, title: 'ترندهای جواهرات نقره در سال ۱۴۰۳', excerpt: 'جدیدترین مدل‌ها و طرح‌های زیورآلات نقره که امسال...', date: '۱۴۰۳/۰۲/۲۵', image: '✨', slug: 'trends-1403' },
-  ]
+  // اگر مقاله‌ای منتشر نشده باشد، این بخش نمایش داده نمی‌شود.
+  if (posts.length === 0) return null
 
   return (
     <section className="py-16 bg-gray-50">
@@ -282,21 +285,31 @@ export function BlogPreviewSection({
           </Link>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {posts.map((post) => (
+          {posts.slice(0, 3).map((post, i) => (
             <Link
               key={post.id}
-              href={`/blog/${post.slug}`}
+              href={`/blog/${post.meta.slug}`}
               className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 group hover:shadow-md transition-shadow card-hover"
             >
-              <div className="h-48 bg-gradient-to-br from-dark to-gray-700 flex items-center justify-center text-6xl">
-                {post.image}
+              <div className="relative h-48 bg-gradient-to-br from-dark to-gray-700 flex items-center justify-center overflow-hidden">
+                {post.cover_image ? (
+                  <Image
+                    src={getImageUrl(post.cover_image.full_url || post.cover_image.url)}
+                    alt={post.cover_image.alt || post.title}
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                  />
+                ) : (
+                  <span className="text-6xl">{BLOG_FALLBACK_EMOJIS[i % BLOG_FALLBACK_EMOJIS.length]}</span>
+                )}
               </div>
               <div className="p-5">
-                <p className="text-xs text-gray-400 mb-2">{post.date}</p>
-                <h3 className="font-bold text-dark text-base mb-2 group-hover:text-gold transition-colors">
+                <p className="text-xs text-gray-400 mb-2">{getPersianDate(post.date)}</p>
+                <h3 className="font-bold text-dark text-base mb-2 group-hover:text-gold transition-colors line-clamp-2">
                   {post.title}
                 </h3>
-                <p className="text-sm text-gray-500 line-clamp-2 leading-6">{post.excerpt}</p>
+                <p className="text-sm text-gray-500 line-clamp-2 leading-6">{post.intro}</p>
               </div>
             </Link>
           ))}

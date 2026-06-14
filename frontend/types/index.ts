@@ -182,6 +182,42 @@ export interface BlogPost {
   read_time: number
 }
 
+// ─── Wagtail blog (CMS) ──────────────────────────────────────────────────────
+
+export interface WagtailImage {
+  url: string
+  full_url?: string
+  width: number
+  height: number
+  alt: string
+}
+
+export interface BlogListItem {
+  id: number
+  meta: {
+    slug: string
+    type: string
+    html_url: string | null
+    first_published_at: string | null
+  }
+  title: string
+  date: string
+  intro: string
+  author: string
+  cover_image: WagtailImage | null
+  tag_list: string[]
+}
+
+export type BlogBodyBlock =
+  | { type: 'heading'; id: string; value: string }
+  | { type: 'paragraph'; id: string; value: string }
+  | { type: 'image'; id: string; value: number }
+  | { type: 'quote'; id: string; value: { text: string; author?: string } }
+
+export interface BlogDetail extends BlogListItem {
+  body: BlogBodyBlock[]
+}
+
 // ─── Home page CMS blocks ───────────────────────────────────────────────────
 
 export interface HeroSlide {

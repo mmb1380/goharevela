@@ -17,6 +17,7 @@ from wagtail.blocks import (
     TextBlock,
 )
 from wagtail.fields import RichTextField, StreamField
+from wagtail.images.api.fields import ImageRenditionField
 from wagtail.images.blocks import ImageChooserBlock
 from wagtail.models import Orderable, Page
 from wagtail.search import index
@@ -469,10 +470,17 @@ class BlogPage(Page):
         FieldPanel('body'),
     ]
 
+    @property
+    def tag_list(self):
+        """لیست نام برچسب‌ها برای API."""
+        return [t.name for t in self.tags.all()]
+
     api_fields = [
         APIField('date'),
         APIField('intro'),
         APIField('author'),
+        APIField('cover_image', serializer=ImageRenditionField('fill-800x500')),
+        APIField('tag_list'),
         APIField('body'),
     ]
 
